@@ -16,7 +16,38 @@ This repository contains the implementation for research addressing both problem
 1. **Dynamic Sequence Reordering** — using the CARLA simulator, camera-based multi-lane detection (BEV + Sliding Window), and 2D-lidar-based inter-vehicle distance measurement, this implements two scenarios (cyclic reorder / promoting a specific vehicle to the lead) that safely swap a vehicle's position within the platoon
 2. **Range-Efficiency Assessment** — a framework that connects ROS Bridge with a Python-based BMS module to quantitatively evaluate how a reordering strategy affects the platoon's average energy efficiency, SoC uniformity, and achievable driving range
 
-![Overall framework structure](docs/images/fig4-framework-architecture.png)
+```mermaid
+flowchart LR
+    subgraph CARLA["CARLA Simulator"]
+        direction TB
+        PHY["Vehicle Physics Model<br/>(Aerodynamics & Dynamics)"]
+        T0["Truck 0 (LV)"]
+        T1["Truck 1 (FV1)"]
+        T2["Truck 2 (FV2)"]
+        SEN["Sensor Data Generation<br/>(Pos, Vel, Acc, SoC)"]
+        PHY ~~~ T0 ~~~ T1 ~~~ T2 ~~~ SEN
+    end
+
+    ROS["ROS Bridge<br/>Topic publish/subscribe"]
+
+    subgraph BMS["Python BMS Control"]
+        direction TB
+        MON["Platoon-level BMS<br/>(SoC Monitoring)"]
+        DEC["Decision Logic<br/>(Auto Reorder / Auto Promote Tail)"]
+        CMD["Command Generator<br/>(Lane Change / PID Control)"]
+    end
+
+    ROS ~~~ DEC
+    CARLA -- "State Data<br/>(Pos, Vel, Acc)" --> ROS
+    ROS -- "Actuation Signals" --> CARLA
+    CARLA -- "SoC Data" --> ROS
+    ROS -- "ROS Topics<br/>(Subscribe)" --> MON
+    DEC -- "Control Commands<br/>(Lane Change, Target Vel)" --> ROS
+    ROS -- "Energy Metrics" --> CMD
+
+    linkStyle 6,9 stroke:#c0392b,color:#c0392b
+    linkStyle 7,10 stroke:#1f77b4,color:#1f77b4
+```
 
 *Real-time closed-loop integration structure: CARLA Simulator ↔ ROS Bridge ↔ Python BMS Control*
 
